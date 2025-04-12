@@ -178,24 +178,24 @@ def generate_bespoke_cocktail():
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
 
-   ingredients = [
+ingredients = [
         f"{oz_to_ml(strength):.0f}ml {spirit}",
         f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
         f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
         f"{juice} juice",
         f"{juice} juice (Lengthener)",
         f"Garnish: {garnish}"
-    ]
+]
 
     # If top-up is needed, include that in the ingredients
-    if top_up_needed > 20:
-        ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
+if top_up_needed > 20:
+    ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
     # Now, we don't need to join them into a single string, but keep them as a list of ingredients
-    recipe = {
-        'Glass': glass['type'],
-        'Ingredients': ingredients  # Return ingredients as a list (not joined into a string)
-    }
+recipe = {
+    'Glass': glass['type'],
+    'Ingredients': ingredients  # Return ingredients as a list (not joined into a string)
+}
 
     # Return the recipe as a JSON response
 
