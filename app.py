@@ -197,10 +197,7 @@ recipe = {
     'Ingredients': ingredients  # Return ingredients as a list (not joined into a string)
 }
 
-    # Return the recipe as a JSON response
-
-
-    
+# Return the recipe as a JSON response
 return jsonify(recipe)
 
 if __name__ == '__main__':
