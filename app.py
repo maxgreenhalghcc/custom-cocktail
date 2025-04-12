@@ -189,17 +189,17 @@ def generate_bespoke_cocktail():
 
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
-
-# Combine the ingredients into a readable format
-
-ingredients_display = "\n".join(ingredients)
-
-recipe = {
-    'Glass': glass['type'],
-    'Ingredients': ingredients_display  # Displaying the ingredients in readable form
-}
-
-return jsonify(recipe)
+    
+    # Combine the ingredients into a readable format
+    
+    ingredients_display = "\n".join(ingredients)
+    
+    recipe = {
+        'Glass': glass['type'],
+        'Ingredients': ingredients_display  # Displaying the ingredients in readable form
+    }
+    
+    return jsonify(recipe)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
