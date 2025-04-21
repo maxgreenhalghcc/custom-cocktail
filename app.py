@@ -1,7 +1,13 @@
 from flask import Flask, request, jsonify
 import random
+import json
+import os
 
 app = Flask(__name__)
+
+# === Load inventory.json flavour matrices === #
+with open(os.path.join(os.path.dirname(__file__), 'inventory.json')) as f:
+    full_inventory = json.load(f)
 
 def oz_to_ml(oz):
     return oz * 29.5735
@@ -9,7 +15,11 @@ def oz_to_ml(oz):
 @app.route('/generate', methods=['POST'])
 def generate_bespoke_cocktail():
     user = request.get_json()
+    bar_id = user.get('bar_id', 'cross axes').lower()
 
+    flavour_matrix = full_inventory.get(bar_id, [])
+
+    # Base configuration
     music_strength = {
         'jazz/blues': 1.5,
         'rap': 1.75,
@@ -86,52 +96,6 @@ def generate_bespoke_cocktail():
         'passion fruit': ['sweet', 'indulgent', 'exotic']
     }
 
-    flavour_matrix = [
-        # SPIRITS
-        {'type': 'spirit', 'name': 'vodka', 'seasons': ['spring', 'summer'], 'aromas': ['citrus', 'sweet'], 'profiles': ['clean', 'zesty', 'vibrant']},
-        {'type': 'spirit', 'name': 'gin', 'seasons': ['spring'], 'aromas': ['floral', 'citrus'], 'profiles': ['botanical', 'fresh', 'floral']},
-        {'type': 'spirit', 'name': 'rum', 'seasons': ['summer', 'autumn'], 'aromas': ['sweet'], 'profiles': ['tropical', 'rich', 'fruity']},
-        {'type': 'spirit', 'name': 'bourbon', 'seasons': ['autumn', 'winter'], 'aromas': ['woody', 'sweet'], 'profiles': ['indulgent', 'warm', 'classic']},
-        {'type': 'spirit', 'name': 'peach schnapps', 'seasons': ['spring', 'summer'], 'aromas': ['fruity'], 'profiles': ['sweet', 'fresh']},
-        {'type': 'spirit', 'name': 'bacardi', 'seasons': ['summer'], 'aromas': ['sweet'], 'profiles': ['tropical', 'light']},
-        {'type': 'spirit', 'name': 'dark rum', 'seasons': ['autumn', 'winter'], 'aromas': ['woody'], 'profiles': ['rich', 'indulgent']},
-        {'type': 'spirit', 'name': 'spiced rum', 'seasons': ['autumn'], 'aromas': ['woody'], 'profiles': ['spiced', 'warm']},
-        {'type': 'spirit', 'name': 'malibu', 'seasons': ['summer'], 'aromas': ['sweet'], 'profiles': ['tropical', 'coconut']},
-        {'type': 'spirit', 'name': 'passionfruit vodka', 'seasons': ['summer', 'winter'], 'aromas': ['sweet'], 'profiles': ['tropical', 'exotic']},
-        {'type': 'spirit', 'name': 'berry vodka', 'seasons': ['spring', 'winter'], 'aromas': ['sweet'], 'profiles': ['fruity', 'vibrant']},
-        {'type': 'spirit', 'name': 'tropical rum', 'seasons': ['summer'], 'aromas': ['sweet'], 'profiles': ['tropical', 'zesty']},
-        {'type': 'spirit', 'name': 'rhubarb gin', 'seasons': ['spring'], 'aromas': ['floral'], 'profiles': ['tart', 'fresh']},
-        {'type': 'spirit', 'name': 'pink gin', 'seasons': ['spring'], 'aromas': ['floral'], 'profiles': ['fruity', 'romantic']},
-        {'type': 'spirit', 'name': 'orange gin', 'seasons': ['summer'], 'aromas': ['citrus'], 'profiles': ['zesty', 'clean']},
-        {'type': 'spirit', 'name': 'lemon gin', 'seasons': ['summer'], 'aromas': ['citrus'], 'profiles': ['zesty', 'fresh']},
-        {'type': 'spirit', 'name': 'berry bacardi', 'seasons': ['spring', 'summer'], 'aromas': ['sweet'], 'profiles': ['fruity', 'vibrant']},
-
-         # SYRUPS
-        {'type': 'syrup', 'name': 'vanilla syrup', 'spirits': ['vodka', 'rum'], 'seasons': ['winter'], 'aromas': ['sweet'], 'profiles': ['rich', 'classic']},
-        {'type': 'syrup', 'name': 'maple syrup', 'spirits': ['bourbon', 'rum'], 'seasons': ['autumn'], 'aromas': ['woody'], 'profiles': ['earthy', 'indulgent']},
-        {'type': 'syrup', 'name': 'peach syrup', 'spirits': ['vodka', 'gin'], 'seasons': ['summer'], 'aromas': ['floral'], 'profiles': ['fresh', 'fruity']},
-        {'type': 'syrup', 'name': 'blue raspberry syrup', 'spirits': ['vodka'], 'seasons': ['spring'], 'aromas': ['sweet'], 'profiles': ['candy', 'vibrant']},
-
-        # MODIFIERS
-        {'type': 'modifier', 'name': 'amaretto', 'spirits': ['bourbon'], 'seasons': ['autumn'], 'aromas': ['woody'], 'profiles': ['nutty', 'rich']},
-        {'type': 'modifier', 'name': 'grenadine', 'spirits': ['vodka', 'rum'], 'seasons': ['summer', 'spring'], 'aromas': ['sweet'], 'profiles': ['candy', 'classic']},
-        {'type': 'modifier', 'name': 'vermouth', 'spirits': ['gin'], 'seasons': ['spring'], 'aromas': ['floral'], 'profiles': ['dry', 'herbal']},
-        {'type': 'modifier', 'name': 'citrus vodka / triple sec', 'spirits': ['vodka', 'rum'], 'seasons': ['summer'], 'aromas': ['citrus'], 'profiles': ['zesty', 'vibrant']},
-
-        # JUICES
-        {'type': 'juice', 'name': 'orange juice', 'spirits': ['vodka', 'gin', 'tequila'], 'seasons': ['spring'], 'aromas': ['citrus'], 'profiles': ['zesty', 'fresh']},
-        {'type': 'juice', 'name': 'pineapple juice', 'spirits': ['rum', 'vodka'], 'seasons': ['summer'], 'aromas': ['sweet'], 'profiles': ['tropical', 'vibrant']},
-        {'type': 'juice', 'name': 'cranberry juice', 'spirits': ['vodka', 'rum'], 'seasons': ['autumn'], 'aromas': ['woody'], 'profiles': ['dry', 'subtle']},
-        {'type': 'juice', 'name': 'passion fruit juice', 'spirits': ['vodka', 'rum'], 'seasons': ['winter'], 'aromas': ['sweet'], 'profiles': ['exotic', 'indulgent']},
-
-        # GARNISHES
-        {'type': 'garnish', 'name': 'lavender sprig', 'seasons': ['spring'], 'aromas': ['floral'], 'profiles': ['fresh', 'romantic']},
-        {'type': 'garnish', 'name': 'lemon twist', 'seasons': ['summer'], 'aromas': ['citrus'], 'profiles': ['zesty', 'clean']},
-        {'type': 'garnish', 'name': 'rosemary sprig', 'seasons': ['autumn'], 'aromas': ['woody'], 'profiles': ['earthy', 'herbal']},
-        {'type': 'garnish', 'name': 'maraschino cherry', 'seasons': ['winter'], 'aromas': ['sweet'], 'profiles': ['indulgent', 'classic']},
-    ]
-
-
     def match_flavour(item_type, spirit, season, aroma, profile_tags):
         compatible = []
         for item in flavour_matrix:
@@ -148,7 +112,7 @@ def generate_bespoke_cocktail():
             compatible.append(item['name'])
         return random.choice(compatible) if compatible else None
 
-    # === LOGIC === #
+    # === User Input Based Logic === #
     spirit = user.get('base_spirit')
     strength = music_strength.get(user.get('music_preference', '').lower(), 2.0)
     balance = dining_balances.get(user.get('dining_style', '').lower(), {'modifier': 0.75, 'sweetener': 0.5})
@@ -170,34 +134,26 @@ def generate_bespoke_cocktail():
     modifier = next((m for m in modifier_choices if any(p in m.lower() for p in preferred_profiles)), random.choice(modifier_choices))
     sweetener = next((s for s in sweetener_choices if any(p in s.lower() for p in preferred_profiles)), random.choice(sweetener_choices))
 
-   # modifier = match_flavour('modifier', spirit, user.get('season'), user.get('aroma_preference'), preferred_profiles)
-   # sweetener = match_flavour('syrup', spirit, user.get('season'), user.get('aroma_preference'), preferred_profiles)
-
-    
     base_ml = oz_to_ml(strength + balance['modifier'] + balance['sweetener'])
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
-
     ingredients = [
-            f"{oz_to_ml(strength):.0f}ml {spirit}",
-            f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
-            f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
-            f"{juice} juice",
-            f"{juice} juice (Lengthener)",
-            f"Garnish: {garnish}"
+        f"{oz_to_ml(strength):.0f}ml {spirit}",
+        f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
+        f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
+        f"{juice} juice",
+        f"{juice} juice (Lengthener)",
+        f"Garnish: {garnish}"
     ]
-    
-        # If top-up is needed, include that in the ingredients
+
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
-    
-        # Now, we don't need to join them into a single string, but keep them as a list of ingredients
+
     recipe = {
         'Glass': glass['type'],
-        'Ingredients': ingredients  # Return ingredients as a list (not joined into a string)
+        'Ingredients': "\n".join(ingredients)
     }
-    
-    # Return the recipe as a JSON response
+
     return jsonify(recipe)
 
 if __name__ == '__main__':
