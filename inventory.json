@@ -1,7 +1,7 @@
 {
   "cross_axes": {
     "flavour_matrix": [
-      #SPIRITS
+      #Spirits
       {"type": "spirit", "name": "vodka", "seasons": ["spring", "summer"], "aromas": ["citrus", "sweet"], "profiles": ["clean", "zesty", "vibrant"]},
       {"type": "spirit", "name": "gin", "seasons": ["spring"], "aromas": ["floral", "citrus"], "profiles": ["botanical", "fresh", "floral"]},
       {"type": "spirit", "name": "rum", "seasons": ["summer", "autumn"], "aromas": ["sweet"], "profiles": ["tropical", "rich", "fruity"]},
