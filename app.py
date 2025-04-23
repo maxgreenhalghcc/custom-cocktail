@@ -6,8 +6,12 @@ import os
 app = Flask(__name__)
 
 # === Load inventory.json flavour matrices === #
-with open(os.path.join(os.path.dirname(__file__), 'inventory.json')) as f:
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+json_path = os.path.join(BASE_DIR, 'inventory.json')
+
+with open(json_path, 'r') as f:
     full_inventory = json.load(f)
+
 
 def oz_to_ml(oz):
     return oz * 29.5735
