@@ -21,7 +21,7 @@ def generate_bespoke_cocktail():
     user = request.get_json()
     bar_id = user.get('bar_id', 'cross axes').lower()
 
-    flavour_matrix = full_inventory.get(bar_id, [])
+    flavour_matrix = full_inventory.get(bar_id, {}).get("flavour_matrix", [])
 
     # Base configuration
     music_strength = {
