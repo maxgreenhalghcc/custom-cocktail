@@ -156,6 +156,7 @@ def generate_recipe():
         f"{juice} juice (Lengthener)",
         f"Garnish: {garnish}"
     ]
+    
 
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
