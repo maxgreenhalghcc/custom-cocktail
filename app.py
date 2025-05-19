@@ -159,7 +159,7 @@ def generate_bespoke_cocktail():
     }
 
     return jsonify({
-    'recipe': recipe_string
+        'recipe': recipe_string
     })
 
 if __name__ == '__main__':
