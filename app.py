@@ -158,7 +158,9 @@ def generate_bespoke_cocktail():
         'Ingredients': "\n".join(ingredients)
     }
 
-    return jsonify(recipe)
+    return jsonify({
+    'recipe': recipe_string
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
