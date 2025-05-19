@@ -158,8 +158,8 @@ def generate_recipe():
     ]
     
 
-    if top_up_needed > 20:
-        ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
+if top_up_needed > 20:
+    ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
     # Format as HTML
     ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
