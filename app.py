@@ -5,13 +5,12 @@ import os
 
 app = Flask(__name__)
 
-# === Load inventory.json flavour matrices === #
+# === Load inventory === #
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 json_path = os.path.join(BASE_DIR, 'inventory.json')
 
 with open(json_path, 'r') as f:
     full_inventory = json.load(f)
-
 
 def oz_to_ml(oz):
     return oz * 29.5735
@@ -20,10 +19,9 @@ def oz_to_ml(oz):
 def generate_bespoke_cocktail():
     user = request.get_json()
     bar_id = user.get('bar_id', 'cross axes').lower()
-
     flavour_matrix = full_inventory.get(bar_id, {}).get("flavour_matrix", [])
 
-    # Base configuration
+    # === Config Maps === #
     music_strength = {
         'jazz/blues': 1.5,
         'rap': 1.75,
@@ -100,6 +98,7 @@ def generate_bespoke_cocktail():
         'passion fruit': ['sweet', 'indulgent', 'exotic']
     }
 
+    # === Helper function === #
     def match_flavour(item_type, spirit, season, aroma, profile_tags):
         compatible = []
         for item in flavour_matrix:
@@ -116,7 +115,7 @@ def generate_bespoke_cocktail():
             compatible.append(item['name'])
         return random.choice(compatible) if compatible else None
 
-    # === User Input Based Logic === #
+    # === User input logic === #
     spirit = user.get('base_spirit')
     strength = music_strength.get(user.get('music_preference', '').lower(), 2.0)
     balance = dining_balances.get(user.get('dining_style', '').lower(), {'modifier': 0.75, 'sweetener': 0.5})
@@ -141,14 +140,8 @@ def generate_bespoke_cocktail():
     base_ml = oz_to_ml(strength + balance['modifier'] + balance['sweetener'])
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
-
-
-
-    
-@app.route('/generate-recipe', methods=['POST'])
-def generate_recipe():
-
-     ingredients = [
+    # === Build ingredients === #
+    ingredients = [
         f"{oz_to_ml(strength):.0f}ml {spirit}",
         f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
         f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
@@ -156,12 +149,11 @@ def generate_recipe():
         f"{juice} juice (Lengthener)",
         f"Garnish: {garnish}"
     ]
-    
 
-if top_up_needed > 20:
-    ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
+    if top_up_needed > 20:
+        ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
-    # Format as HTML
+    # === Format as HTML === #
     ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
     recipe_html = f"""
     <h2>Glass: {glass['type']}</h2>
@@ -169,6 +161,7 @@ if top_up_needed > 20:
     <ul>{ingredients_html}</ul>
     """
 
+    # === Return JSON === #
     recipe = {
         "glass": glass['type'],
         "ingredients_list": ingredients,
@@ -176,7 +169,6 @@ if top_up_needed > 20:
     }
 
     return jsonify(recipe)
-    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
