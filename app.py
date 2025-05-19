@@ -142,25 +142,33 @@ def generate_bespoke_cocktail():
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
     ingredients = [
-        f"{oz_to_ml(strength):.0f}ml {spirit}",
-        f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
-        f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
-        f"{juice} juice",
-        f"{juice} juice (Lengthener)",
-        f"Garnish: {garnish}"
-    ]
+    f"{oz_to_ml(strength):.0f}ml {spirit}",
+    f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
+    f"{oz_to_ml(balance['sweetener']):.0f}ml {sweetener}",
+    f"{juice} juice",
+    f"{juice} juice (Lengthener)",
+    f"Garnish: {garnish}"
+]
 
-    if top_up_needed > 20:
-        ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
+if top_up_needed > 20:
+    ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
-    recipe = {
-        'Glass': glass['type'],
-        'Ingredients': "\n".join(ingredients)
-    }
+# Format as HTML (rich text)
+ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
+recipe_html = f"""
+<h2>Glass: {glass['type']}</h2>
+<h3>Ingredients:</h3>
+<ul>{ingredients_html}</ul>
+"""
 
-    return jsonify({
-        'recipe': recipe_string
-    })
+# Return HTML-formatted string in JSON for Make
+recipe = {
+    "glass": glass['type'],
+    "ingredients_list": ingredients,
+    "recipe_html": recipe_html
+}
+
+return jsonify(recipe)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
