@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import random
 import json
 import os
+import re
 
 app = Flask(__name__)
 
@@ -15,6 +16,9 @@ with open(json_path, 'r') as f:
 def oz_to_ml(oz):
     return oz * 29.5735
 
+def normalize_term(word):
+    return word.lower().strip().rstrip('s')
+
 @app.route('/generate', methods=['POST'])
 def generate_bespoke_cocktail():
     user = request.get_json()
@@ -22,7 +26,7 @@ def generate_bespoke_cocktail():
 
     flavour_matrix = full_inventory.get(bar_id, {}).get("flavour_matrix", [])
 
-    # === Configs === #
+    # Base configuration
     music_strength = {
         'jazz/blues': 1.5,
         'rap': 1.75,
@@ -134,13 +138,36 @@ def generate_bespoke_cocktail():
     preferred_profiles.add(user.get('aroma_preference', '').lower())
     preferred_profiles.update(user.get('dining_style', '').lower().split())
 
-    modifier = next((m for m in modifier_choices if any(p in m.lower() for p in preferred_profiles)), random.choice(modifier_choices))
-    sweetener = next((s for s in sweetener_choices if any(p in s.lower() for p in preferred_profiles)), random.choice(sweetener_choices))
+    # Notes Parsing
+    notes = user.get('notes', '').lower()
+    dislikes = set(re.findall(r'(?:no|avoid|don\'t like|hate|dislike) (\w+)', notes))
+    allergies = set(re.findall(r'(?:allergic to|can\'t have|intolerant to) ([\w\s]+)', notes))
+    preferences = set(re.findall(r'(?:prefer|love|like|enjoy|fan of) (\w+)', notes))
+
+    dislikes = {normalize_term(x) for x in dislikes}
+    allergies = {normalize_term(x) for x in allergies}
+    preferences = {normalize_term(x) for x in preferences}
+    exclusions = dislikes.union(allergies)
+
+    # Modifier selection
+    modifier = next(
+        (m for m in modifier_choices
+         if all(x not in m.lower() for x in exclusions)
+         and any(p in m.lower() for p in preferences)),
+        next((m for m in modifier_choices if all(x not in m.lower() for x in exclusions)), random.choice(modifier_choices))
+    )
+
+    sweetener = next(
+        (s for s in sweetener_choices
+         if all(x not in s.lower() for x in exclusions)
+         and any(p in s.lower() for p in preferences)),
+        next((s for s in sweetener_choices if all(x not in s.lower() for x in exclusions)), random.choice(sweetener_choices))
+    )
 
     base_ml = oz_to_ml(strength + balance['modifier'] + balance['sweetener'])
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
-    # === Assemble Recipe === #
+    # Final ingredients list
     ingredients = [
         f"{oz_to_ml(strength):.0f}ml {spirit}",
         f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
@@ -153,17 +180,12 @@ def generate_bespoke_cocktail():
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
-    # === HTML Response Formatting === #
-    ingredients_html = "".join(f"<li style='margin-bottom: 4px;'>{item}</li>" for item in ingredients)
-
+    # Format as HTML
+    ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
     recipe_html = f"""
-    <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
-      <h2 style="font-size: 20px; margin-bottom: 10px;">Glass: {glass['type'].title()}</h2>
-      <h3 style="font-size: 18px; margin-bottom: 6px;">Ingredients:</h3>
-      <ul style="padding-left: 20px; list-style-type: disc;">
-        {ingredients_html}
-      </ul>
-    </div>
+    <h2>Glass: {glass['type']}</h2>
+    <h3>Ingredients:</h3>
+    <ul>{ingredients_html}</ul>
     """
 
     recipe = {
@@ -172,7 +194,13 @@ def generate_bespoke_cocktail():
         "recipe_html": recipe_html
     }
 
+    # Warn if excluded items still present
+    conflicts = [i for i in [modifier, sweetener, juice, seasonal_note] if any(x in i.lower() for x in exclusions)]
+    if conflicts:
+        recipe['warning'] = f"Note: Ingredients like {', '.join(conflicts)} may conflict with notes. Please double-check."
+
     return jsonify(recipe)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
