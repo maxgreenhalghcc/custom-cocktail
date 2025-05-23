@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 import random
 import json
 import os
-import re
 
 app = Flask(__name__)
 
@@ -15,9 +14,6 @@ with open(json_path, 'r') as f:
 
 def oz_to_ml(oz):
     return oz * 29.5735
-
-def normalize_term(word):
-    return word.lower().strip().rstrip('s')
 
 @app.route('/generate', methods=['POST'])
 def generate_bespoke_cocktail():
@@ -103,23 +99,6 @@ def generate_bespoke_cocktail():
         'passion fruit': ['sweet', 'indulgent', 'exotic']
     }
 
-    def match_flavour(item_type, spirit, season, aroma, profile_tags):
-        compatible = []
-        for item in flavour_matrix:
-            if item['type'] != item_type:
-                continue
-            if spirit and spirit not in item.get('spirits', []):
-                continue
-            if season and season not in item.get('seasons', []):
-                continue
-            if aroma and aroma not in item.get('aromas', []):
-                continue
-            if profile_tags and not any(tag in item.get('profiles', []) for tag in profile_tags):
-                continue
-            compatible.append(item['name'])
-        return random.choice(compatible) if compatible else None
-
-    # === User Input Based Logic === #
     spirit = user.get('base_spirit')
     strength = music_strength.get(user.get('music_preference', '').lower(), 2.0)
     balance = dining_balances.get(user.get('dining_style', '').lower(), {'modifier': 0.75, 'sweetener': 0.5})
@@ -138,36 +117,31 @@ def generate_bespoke_cocktail():
     preferred_profiles.add(user.get('aroma_preference', '').lower())
     preferred_profiles.update(user.get('dining_style', '').lower().split())
 
-    # Notes Parsing
-    notes = user.get('notes', '').lower()
-    dislikes = set(re.findall(r'(?:no|avoid|don\'t like|hate|dislike) (\w+)', notes))
-    allergies = set(re.findall(r'(?:allergic to|can\'t have|intolerant to) ([\w\s]+)', notes))
-    preferences = set(re.findall(r'(?:prefer|love|like|enjoy|fan of) (\w+)', notes))
+    modifier = next((m for m in modifier_choices if any(p in m.lower() for p in preferred_profiles)), random.choice(modifier_choices))
+    sweetener = next((s for s in sweetener_choices if any(p in s.lower() for p in preferred_profiles)), random.choice(sweetener_choices))
 
-    dislikes = {normalize_term(x) for x in dislikes}
-    allergies = {normalize_term(x) for x in allergies}
-    preferences = {normalize_term(x) for x in preferences}
-    exclusions = dislikes.union(allergies)
+    # Handle notes (optional)
+    notes = user.get('notes', '').strip().lower()
+    avoid_ingredients = []
+    if notes:
+        if 'no coconut' in notes:
+            avoid_ingredients.append('coconut')
+        if 'allergic to nuts' in notes:
+            avoid_ingredients.extend(['amaretto', 'hazelnut syrup', 'nut-based liqueurs'])
+        if 'no dairy' in notes:
+            avoid_ingredients.extend(['cream', 'milk', 'baileys'])
 
-    # Modifier selection
-    modifier = next(
-        (m for m in modifier_choices
-         if all(x not in m.lower() for x in exclusions)
-         and any(p in m.lower() for p in preferences)),
-        next((m for m in modifier_choices if all(x not in m.lower() for x in exclusions)), random.choice(modifier_choices))
-    )
+        def filter_ingredient(name, fallback='simple syrup'):
+            return fallback if any(bad in name.lower() for bad in avoid_ingredients) else name
 
-    sweetener = next(
-        (s for s in sweetener_choices
-         if all(x not in s.lower() for x in exclusions)
-         and any(p in s.lower() for p in preferences)),
-        next((s for s in sweetener_choices if all(x not in s.lower() for x in exclusions)), random.choice(sweetener_choices))
-    )
+        modifier = filter_ingredient(modifier)
+        sweetener = filter_ingredient(sweetener)
+        juice = filter_ingredient(juice, fallback='orange')
+        garnish = filter_ingredient(garnish, fallback='lemon twist')
 
     base_ml = oz_to_ml(strength + balance['modifier'] + balance['sweetener'])
     top_up_needed = max(0, glass['min_ml'] - base_ml)
 
-    # Final ingredients list
     ingredients = [
         f"{oz_to_ml(strength):.0f}ml {spirit}",
         f"{oz_to_ml(balance['modifier']):.0f}ml {modifier}",
@@ -180,10 +154,9 @@ def generate_bespoke_cocktail():
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
-    # Format as HTML
     ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
     recipe_html = f"""
-    <h2>Glass: {glass['type']}</h2>
+    <h3>Glass: {glass['type']}</h3>
     <h3>Ingredients:</h3>
     <ul>{ingredients_html}</ul>
     """
@@ -194,13 +167,7 @@ def generate_bespoke_cocktail():
         "recipe_html": recipe_html
     }
 
-    # Warn if excluded items still present
-    conflicts = [i for i in [modifier, sweetener, juice, seasonal_note] if any(x in i.lower() for x in exclusions)]
-    if conflicts:
-        recipe['warning'] = f"Note: Ingredients like {', '.join(conflicts)} may conflict with notes. Please double-check."
-
     return jsonify(recipe)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
