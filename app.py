@@ -154,12 +154,8 @@ def generate_bespoke_cocktail():
     if top_up_needed > 20:
         ingredients.append(f"Top up with {int(top_up_needed)}ml lemonade or {juice} juice")
 
-    ingredients_html = "".join(f"<li>{item}</li>" for item in ingredients)
-    recipe_html = f"""
-    <h3>Glass: {glass['type']}</h3>
-    <h3>Ingredients:</h3>
-    <ul>{ingredients_html}</ul>
-    """
+    recipe_html = f"<h3>Glass: {glass['type']}</h3><h3>Ingredients:</h3><ul>{''.join(f'<li>{item}</li>' for item in ingredients)}</ul>"
+
 
     recipe = {
         "glass": glass['type'],
